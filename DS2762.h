@@ -16,7 +16,7 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
-
+#include <Arduino.h>
 #ifndef DS2762_H_
 #define DS2762_H_
 
@@ -58,7 +58,7 @@
 
  */
 #include <OneWire.h>
-
+#define DS2762_FAMILY       0x30
 
 /* Function Commands */
 #define DS2762_READ_DATA               0x69 /* [0x69, XX] Read data starting from memory address XX, max 256 bytes. */
@@ -153,19 +153,19 @@ enum DS2762_EEPROM {
 class DS2762 {
 private:
 	OneWire* bus;
-	uint8_t* address;
+
 	uint8_t* memory;
-	void _read_device(uint8_t* buf, uint8_t start, uint8_t count);
-	void _write_device(uint8_t* buf, uint8_t start, uint8_t count);
+	void _read_device( uint8_t* address,uint8_t* buf, uint8_t start, uint8_t count);
+	void _write_device( uint8_t* address,uint8_t* buf, uint8_t start, uint8_t count);
 	boolean _has_buffer();
-	uint8_t _read_register_bit(uint8_t register_address, uint8_t pin);
-	void _set_register_bit(uint8_t read_register_address,
+	uint8_t _read_register_bit( uint8_t* address,uint8_t register_address, uint8_t pin);
+	void _set_register_bit(uint8_t* address,uint8_t read_register_address,
 			uint8_t write_register_address, uint8_t bit, DS2762_EEPROM block,
 			boolean enabled);
-	int16_t _read_int16(uint8_t addr_msb, uint8_t addr_lsb, int shift_lsb);
+	int16_t _read_int16(uint8_t* address,uint8_t addr_msb, uint8_t addr_lsb, int shift_lsb);
 
 public:
-	DS2762(OneWire*, uint8_t* address, boolean read_all = false);
+	DS2762(OneWire*);
 	~DS2762();
 
 	/*
@@ -173,41 +173,41 @@ public:
 	 * a local array, after this all read operations will be carried out from the
 	 * local copy.
 	 */
-	void readDevice();
+	void readDevice(uint8_t* address);
 
 	/*
 	 * Reads the raw temperature value from the DS2762 memory.
 	 * Each count corresponds to 0.125C
 	 */
-	int16_t readTempRaw();
+	int16_t readTempRaw(uint8_t* address);
 
 	/*
 	 * Retrieves the current temperature from the DS2762's temperature
 	 * sensor in Celcius.
 	 */
-	double readTempC();
+	double readTempC(uint8_t* address);
 
 	/*
 	 * Retrieves the temperature in Fahrenheit.
 	 */
-	double readTempF();
+	double readTempF(uint8_t* address);
 
 	/*
 	 * Reads the raw ADC value (voltage measurement register)
 	 * from the DS2762 memory.
 	 * Each count corresponds to 4.88mV
 	 */
-	int16_t readADCRaw();
+	int16_t readADCRaw(uint8_t* address);
 
 	/*
 	 * Reads the ADC value (voltage measurement register) as a float in volts.
 	 */
-	double readADC();
+	double readADC(uint8_t* address);
 
 	/*
 	 * Reads the raw value of the current measurement register.
 	 */
-	int16_t readCurrentRaw();
+	int16_t readCurrentRaw(uint8_t* address);
 
 	/*
 	 * For the internal sense resistor configuration, the DS2762 maintains
@@ -220,19 +220,19 @@ public:
 	 * measured VIS voltage to the current register,
 	 * with a 15.625 microV resolution and a full-scale 64mV range.
 	 */
-	double readCurrent(bool internal_sense_resistor);
+	double readCurrent(uint8_t* address,bool internal_sense_resistor);
 
 	/*
 	 * copyEEPROMBlock issues the DS2762_COPY_DATA command to the
 	 * causing the DS2762 to copy data from the shadow RAM to the EEPROM.
 	 */
-	void copyEEPROMBlock(DS2762_EEPROM block);
+	void copyEEPROMBlock(uint8_t* address,DS2762_EEPROM block);
 
 	/*
 	 * copyEEPROMBlock issues the DS2762_RECALL_DATA command to the
 	 * causing the DS2762 to copy data from the EEPROM to the shadow RAM.
 	 */
-	void recallEEPROMBlock(DS2762_EEPROM block);
+	void recallEEPROMBlock(uint8_t* address,DS2762_EEPROM block);
 
 	/*
 	 * writeEEPROM will write to the general purpose EEPROM (BLOCK0).
@@ -244,7 +244,7 @@ public:
 	 *
 	 * returns       - the number of bytes written
 	 */
-	uint32_t writeEEPROM(byte* buf, uint32_t length, uint32_t eeprom_offset);
+	uint32_t writeEEPROM(uint8_t* address,byte* buf, uint32_t length, uint32_t eeprom_offset);
 
 	/*
 	 * writeEEPROM will write to the general purpose EEPROM (BLOCK0).
@@ -256,7 +256,7 @@ public:
 	 *
 	 * returns       - the number of bytes read
 	 */
-	uint32_t readEEPROM(byte* buf, uint32_t length, uint32_t eeprom_offset);
+	uint32_t readEEPROM(uint8_t* address,byte* buf, uint32_t length, uint32_t eeprom_offset);
 
 	/*
 	 * reset frees the memory allocated by the readDevice method
@@ -266,30 +266,30 @@ public:
 	/*
 	 * resetProtectionRegister resets the DS2762_PR_OV_FLAG, DS2762_PR_UV_FLAG, DS2762_PR_COC_FLAG, DS2762_PR_DOC_FLAG flags
 	 */
-	void resetProtectionRegister();
+	void resetProtectionRegister(uint8_t* address);
 
 	//Protection Register
-	boolean isOverVoltage();
-	boolean isUnderVoltage();
-	boolean isChargeOverCurrent();
-	boolean isDischargeOverCurrent();
-	boolean isCCPin();
-	boolean isDCPin();
-	boolean isChargeEnable();
-	boolean isDischargeEnable();
+	boolean isOverVoltage(uint8_t* address);
+	boolean isUnderVoltage(uint8_t* address);
+	boolean isChargeOverCurrent(uint8_t* address);
+	boolean isDischargeOverCurrent(uint8_t* address);
+	boolean isCCPin(uint8_t* address);
+	boolean isDCPin(uint8_t* address);
+	boolean isChargeEnable(uint8_t* address);
+	boolean isDischargeEnable(uint8_t* address);
 
 	//Status Register
-	boolean isSleepModeEnabled();
-	boolean isReadNetAddressOpcode();
-	boolean isSWAPEnabled();
-	boolean isInterruptEnabled();
-	void setSWAPEnabled(boolean enabled);
-	void setSleepMode(boolean enabled);
+	boolean isSleepModeEnabled(uint8_t* address);
+	boolean isReadNetAddressOpcode(uint8_t* address);
+	boolean isSWAPEnabled(uint8_t* address);
+	boolean isInterruptEnabled(uint8_t* address);
+	void setSWAPEnabled(uint8_t* address,boolean enabled);
+	void setSleepMode(uint8_t* address,boolean enabled);
 
 	//Special Feature Register
-	boolean isPSPinLatch();
-	boolean isPIO();
-	boolean isSWAPMasterStatusBit();
+	boolean isPSPinLatch(uint8_t* address);
+	boolean isPIO(uint8_t* address);
+	boolean isSWAPMasterStatusBit(uint8_t* address);
 
 };
 
